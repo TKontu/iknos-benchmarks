@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iknos LLM Comparison</title>
+<meta name="description" content="Pre-registered benchmark of local LLMs on Iknos's production tasks: claim extraction, negation rewriting, entity extraction, verification and evidence judging.">
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mute:#666;--line:#e3e3e3;--accent:#2457c5;--pill:#f2f4f8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121417;--fg:#e8e8e8;--mute:#9aa0a6;--line:#2a2e33;--accent:#7aa2ff;--pill:#1c2026}}
+:root[data-theme="dark"]{--bg:#121417;--fg:#e8e8e8;--mute:#9aa0a6;--line:#2a2e33;--accent:#7aa2ff;--pill:#1c2026}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:32px 16px 64px}
+h1{font-size:1.6rem;margin:0 0 4px}
+h2{font-size:1.1rem;margin:32px 0 8px}
+p{margin:6px 0}
+.mute{color:var(--mute)}
+.status{display:inline-block;background:var(--pill);border:1px solid var(--line);border-radius:999px;padding:2px 12px;font-size:.9rem;margin:8px 0}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600}
+code{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all}
+details{margin-top:8px}
+summary{cursor:pointer;color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+<h1>Local LLMs on the Iknos evidence-reasoning tasks</h1>
+<p class="mute"><b>Abstract.</b> Six locally served LLM configurations are evaluated on five tasks of the Iknos pipeline (claim extraction, negation canonicalisation, entity extraction, claim–span verification, evidence–hypothesis sign judgement) and on ingest throughput. Each task uses its production prompt and output schema. Test sets, acceptance criteria and the selection rule were fixed before candidate evaluation; results are reported as Wilson 95% intervals.</p>
+<span class="status">Pre-registered 2026-10-10 · results pending</span>
+
+<h2>Configurations</h2>
+<div class="wrap"><table>
+<tr><th>Arm</th><th>Model</th><th>Serving</th><th>Role</th></tr>
+<tr><td>B0</td><td>Qwen3.5-4B</td><td>vLLM, AWQ 4-bit</td><td>incumbent</td></tr>
+<tr><td>B0-bf16</td><td>Qwen3.5-4B</td><td>vLLM, bf16</td><td>quantisation control</td></tr>
+<tr><td>A3</td><td>Gemma-4-26B-A4B</td><td>vLLM, AWQ INT4</td><td>candidate</td></tr>
+<tr><td>A7</td><td>Granite-4.1-30B</td><td>llama.cpp, Q4_K_XL</td><td>candidate</td></tr>
+<tr><td>A2</td><td>Qwen3.8-27B</td><td>llama.cpp, Q4_K_XL</td><td>candidate</td></tr>
+<tr><td>A9</td><td>Ministral-3-14B</td><td>vLLM, FP8</td><td>candidate</td></tr>
+</table></div>
+<p class="mute">One RTX 3090 per configuration; reasoning disabled.</p>
+
+<h2>Tasks and acceptance criteria</h2>
+<div class="wrap"><table>
+<tr><th>Task</th><th>Criterion (Wilson 95%)</th></tr>
+<tr><td>R1 negation rewrite: meaning preserved</td><td>≥ 90%, lower bound ≥ 0.85</td></tr>
+<tr><td>R2 entity extraction: recall</td><td>lower bound ≥ 0.85; hallucinated ≤ 2%; false on no-entity text ≤ 5%</td></tr>
+<tr><td>R3 verifier: rejects altered claims</td><td>lower bound ≥ 0.90; false rejection ≤ 10%</td></tr>
+<tr><td>R4 claim extraction: unfaithful claims</td><td>upper bound ≤ 0.10; failed spans upper bound ≤ 0.10</td></tr>
+<tr><td>R5 evidence judge: sign accuracy</td><td>lower bound ≥ 0.80; false support upper bound ≤ 0.10</td></tr>
+</table></div>
+<p class="mute">Selection: highest R5 lower bound among candidates meeting every criterion; otherwise highest R5 lower bound, with unmet criteria reported.</p>
+
+<h2>Protocol</h2>
+<p class="mute">Test sets frozen before candidate evaluation (SHA-256 below); confirmation sets unread at registration. Amendments 11–15 followed the incumbent screen and preceded candidate evaluation. R5 reference labels: unanimous agreement of a three-model panel, filtered by independent adjudication against a pre-specified rubric. Source corpus private; aggregates only.</p>
+<details><summary>Frozen-set digests (SHA-256)</summary>
+<div class="wrap"><table>
+<tr><th>Set</th><th>Items</th><th>SHA-256</th></tr>
+<tr><td>R1 screen</td><td>220</td><td><code>2762bafb01048ca51b983769ba9ab435e7e3831c9907902611265699ae5872be</code></td></tr>
+<tr><td>R1 confirmation</td><td>220</td><td><code>ecb50c8892b9835e211be7e8cda5e08d78a03ed70fad2dc20112c15a8fd12c50</code></td></tr>
+<tr><td>R1 judge controls</td><td>40</td><td><code>fb9b57b325c1c8993fa5f92f8c2329c7b9f5186d9d6e97dcc20f882bcf19e4b2</code></td></tr>
+<tr><td>R2 screen</td><td>220</td><td><code>7cf84055dcbd45d0bbb68b7051648637dc6ab860d1bf8cefd2b40460ab1c981e</code></td></tr>
+<tr><td>R2 confirmation</td><td>220</td><td><code>6dc68c2d4f1deb595b4734c1898fb8218e0ac923f29349b5b43e05832051daa1</code></td></tr>
+<tr><td>R3 screen</td><td>200</td><td><code>65ea5bcb74222b4c941e77a19236ee47d996b5fee7a42595e3fef15a78e046f8</code></td></tr>
+<tr><td>R3 confirmation</td><td>200</td><td><code>a9dd89422fa78e6cef20d7f50c4b6b9f2eb8eae48ef2e793a083b98e832969ad</code></td></tr>
+<tr><td>R4 screen</td><td>108</td><td><code>f54fd9c6aff306bcef5b6c6575ab9fca642ea78df8b12a2356b24d3bbcf0cbdf</code></td></tr>
+<tr><td>R4 confirmation</td><td>108</td><td><code>cc97053b65d5415c1bbf6d34b8b9e29c39be1c212e15b34d0f079edd5101f3af</code></td></tr>
+<tr><td>R4 judge controls</td><td>40</td><td><code>b119a74227489f969b093dbb787a532b4d85dfbf0600fe27e07f9334873501e5</code></td></tr>
+<tr><td>R5 screen</td><td>60</td><td><code>cfbaf7d81b41cb877e4e55c270fd5b4944124cf9f7c232d17a929a208e25d94b</code></td></tr>
+<tr><td>R5 confirmation</td><td>66</td><td><code>1db2bc7a91d91fd1dd85bf9f09bbaa5aa828cb097d6c5c382e05c5415b262bbf</code></td></tr>
+</table></div>
+</details>
+
+<h2>Results</h2>
+<p class="mute">Pending; all configurations will be reported, including those failing criteria.</p>
+</main>
+</body>
+</html>
