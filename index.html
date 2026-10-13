@@ -127,21 +127,6 @@ summary{cursor:pointer;color:var(--accent)}
 <tr><td>Ministral-3-14B<br><span class="mute">vLLM · FP8</span></td><td>86.3% (79.1%↑) ✗</td><td>93.1% (89.8%↑) ✗</td><td>93% (86.3%↑) ✗</td><td>15.5% (17.2%↓) ✗</td><td>90.9% (81.6%↑) ✗</td></tr>
 </table></div>
 <p><b>Selected:</b> Qwen3.8-27B (llama.cpp, Q4_K_XL) for R1, R2, R4 and R5 — the only model that passed all four. Gemma-4-26B-A4B (vLLM, AWQ INT4) as the verifier (R3) — the only pass from a different model family, so the checker does not share the main model's blind spots.</p>
-
-<h2>Evidence judge: five ways to ask the same model</h2>
-<span class="status">Plan published 2026-10-12 · results 2026-10-13</span>
-<p class="mute">The R5 evidence judge, run five different ways on the selected model (Qwen3.8-27B). Accuracy is measured on the R5 test items above. Speed and consistency are measured on 3,248 real evidence–explanation pairs from a 10-document test set, with each method run twice.</p>
-<div class="wrap"><table>
-<tr><th>Method</th><th>Questions per pair</th><th>R5 screen set</th><th>R5 confirmation set</th><th>Evidence credited to the wrong explanation</th></tr>
-<tr><td>A · ask 5 times, take the majority (current)</td><td>5</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
-<tr><td><b>B · ask once, read how confident the model is</b></td><td>1</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
-<tr><td>C-A · as A, with the question reordered so repeated parts are reused</td><td>5</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
-<tr><td>C-B · as B, with the same reordering</td><td>1</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
-<tr><td>D · ask once, answer only, no explanation</td><td>1</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
-</table></div>
-<p class="mute">Items judged right, with the safe-side figure in brackets. All five methods got exactly the same items right, so their accuracy is identical. The last column counts evidence that was counted for a competing explanation it doesn't belong to.</p>
-<div class="charts" id="judge"></div>
-<p><b>Result:</b> same accuracy; asking once and reading the model's confidence (B) is about 4× faster than asking five times, and gives the same answer twice in a row far more often (6 changed answers instead of 71). Approved as the production judge.</p>
 </main>
 <script>
 (function(){
@@ -185,34 +170,6 @@ T.forEach(function(t){
   g.addEventListener("mouseleave",function(){tip.style.display="none"});
  });
  host.appendChild(div);
-});
-// Evidence-judge method: one horizontal bar per method, mean of the two all-pairs runs
-var JM=[["A · ask 5×","A · ask 5 times, take the majority (current)"],["B · ask once","B · ask once, read how confident the model is",1],["C-A · 5×, reordered","C-A · as A, question reordered"],["C-B · once, reordered","C-B · as B, question reordered"],["D · answer only","D · ask once, answer only, no explanation"]];
-var JP=[
- {t:"Total time",c:"to judge all 3,248 pairs, hours (lower is better)",hi:2,f:function(v){return v.toFixed(2)+" h"},d:[6269.5,1520.3,6349.2,1406.0,1023.5].map(function(s){return s/3600}),n:function(i){return "runs: "+[["6,130 s","6,409 s"],["1,539 s","1,502 s"],["6,290 s","6,408 s"],["1,444 s","1,368 s"],["1,050 s","997 s"]][i].join(" · ")}},
- {t:"Changed answers on a re-run",c:"pairs judged differently when the same method ran twice (lower is better)",hi:80,f:function(v){return String(v)},d:[71,6,69,6,17],n:function(i,v){return (v/3248*100).toFixed(2)+"% of 3,248 pairs"}},
- {t:"Slow-case time per pair",c:"95% of pairs finish within, seconds (lower is better)",hi:10,f:function(v){return v.toFixed(1)+" s"},d:[8.62,2.24,8.63,2.12,1.45],n:function(){return "average of two runs"}},
- {t:"Text processed per pair",c:"tokens (word pieces) in + out (lower is better)",hi:3500,f:function(v){return v.toLocaleString("en")},d:[3105,621,3105,621,609],n:function(i){return ["3,005 + 100","601 + 20","3,005 + 100","601 + 20","601 + 8"][i]}}
-];
-var jh=document.getElementById("judge"),JL=118,JR=46,BH=12;
-JP.forEach(function(p){
- var div=document.createElement("div");div.className="panel";
- div.innerHTML="<h3>"+p.t+"</h3><p class='crit'>"+p.c+"</p>";
- var H=TOP+JM.length*RH+4,svg=el("svg",{viewBox:"0 0 "+W+" "+H,role:"img","aria-label":p.t},div);
- var x=function(v){return JL+v/p.hi*(W-JL-JR)};
- el("line",{x1:JL,x2:JL,y1:TOP,y2:TOP+JM.length*RH,"class":"grid"},svg);
- JM.forEach(function(m,r){
-  var y=TOP+r*RH+RH/2,g=el("g",{"class":"row"},svg),v=p.d[r];
-  el("rect",{x:0,y:y-RH/2,width:W,height:RH,fill:"transparent","class":"hit"},g);
-  var lb=el("text",{x:JL-8,y:y+4,"text-anchor":"end","class":"lbl"+(m[2]?" sel":"")},g);lb.textContent=m[0];
-  var w=Math.max(2,x(v)-JL);
-  el("path",{d:"M"+JL+","+(y-BH/2)+"h"+(w-4)+"a4,4 0 0 1 4,4v"+(BH-8)+"a4,4 0 0 1 -4,4h"+(-(w-4))+"z",fill:m[2]?"var(--accent)":"var(--mute)",opacity:m[2]?1:.55},g);
-  var vt=el("text",{x:JL+w+6,y:y+4},g);vt.textContent=p.f(v);
-  var html="<b>"+m[1]+"</b><br>"+p.t+": <b>"+p.f(v)+"</b><br>"+p.n(r,v);
-  g.addEventListener("mousemove",function(e){tip.innerHTML=html;tip.style.display="block";var tw=tip.offsetWidth,lx=e.clientX+14;if(lx+tw>innerWidth-8)lx=e.clientX-tw-14;tip.style.left=lx+"px";tip.style.top=(e.clientY+14)+"px"});
-  g.addEventListener("mouseleave",function(){tip.style.display="none"});
- });
- jh.appendChild(div);
 });
 })();
 </script>
