@@ -40,107 +40,119 @@ summary{cursor:pointer;color:var(--accent)}
 .panel .row:hover .hit{fill:var(--pill)}
 .legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.85rem;color:var(--mute);margin-top:6px}
 .legend svg{vertical-align:-2px;margin-right:4px}
+.howto{background:var(--pill);border:1px solid var(--line);border-radius:8px;padding:8px 14px;margin:14px 0 4px;font-size:.92rem}
+.howto ul{margin:6px 0 2px;padding-left:18px}.howto li{margin:3px 0}
 #tip{position:fixed;pointer-events:none;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:.82rem;line-height:1.35;box-shadow:0 2px 8px rgba(0,0,0,.12);display:none;z-index:9;max-width:260px}
 </style>
 </head>
 <body>
 <main>
-<h1>Local LLMs on the Iknos evidence-reasoning tasks</h1>
-<p class="mute"><b>Abstract.</b> Six locally served LLM configurations are evaluated on five tasks of the Iknos pipeline (claim extraction, negation canonicalisation, entity extraction, claim–span verification, evidence–hypothesis sign judgement) and on ingest throughput. Each task uses its production prompt and output schema. Test sets, acceptance criteria and the selection rule were fixed before candidate evaluation; results are reported as Wilson 95% intervals.</p>
-<span class="status">Pre-registered 2026-10-10 · results 2026-10-13</span>
+<h1>Local AI models on the Iknos evidence-reasoning tasks</h1>
+<p class="mute">Iknos is an evidence-reasoning engine. We tested six AI language models, running on our own GPUs, on the five language tasks Iknos depends on, using the exact instructions Iknos gives them in production. The test questions, the pass marks and the rule for picking a winner were all fixed and published before any candidate was tested.</p>
+<span class="status">Plan published 2026-10-10 · results 2026-10-13</span>
 
-<h2>Configurations</h2>
+<details open class="howto"><summary>How to read this page</summary>
+<ul>
+<li><b>Score</b> — the share of test items a model got right (for R4, the share it got wrong — lower is better).</li>
+<li><b>Safe-side figure</b> (the number with ↑ or ↓) — a test of a few hundred items has a margin of error, so a model is judged on the cautious end of that margin, not its raw score. That way a lucky run can't pass. (Statisticians: the Wilson 95% interval bound.)</li>
+<li><b>Pass mark</b> — the safe-side figure must clear it; ✓ passes, ✗ fails.</li>
+<li><b>Screen and confirmation sets</b> — two separate sets of test items. A model is first tried on the screen set; only models still in contention go on to the confirmation set, which nobody had looked at. Models that clearly failed were stopped after the screen.</li>
+<li><b>Compression formats</b> (AWQ, FP8, Q4_K_XL, bf16 = uncompressed) — ways of shrinking a model so it fits on one graphics card; vLLM and llama.cpp are the programs that run it.</li>
+</ul>
+</details>
+
+<h2>Models tested</h2>
 <div class="wrap"><table>
-<tr><th>Arm</th><th>Model</th><th>Serving</th><th>Role</th></tr>
-<tr><td>B0</td><td>Qwen3.5-4B</td><td>vLLM, AWQ 4-bit</td><td>incumbent</td></tr>
-<tr><td>B0-bf16</td><td>Qwen3.5-4B</td><td>vLLM, bf16</td><td>quantisation control</td></tr>
+<tr><th>Code</th><th>Model</th><th>Runs on · compression</th><th>Role</th></tr>
+<tr><td>B0</td><td>Qwen3.5-4B</td><td>vLLM, AWQ 4-bit</td><td>current model</td></tr>
+<tr><td>B0-bf16</td><td>Qwen3.5-4B</td><td>vLLM, bf16</td><td>same model, uncompressed (does compression hurt?)</td></tr>
 <tr><td>A3</td><td>Gemma-4-26B-A4B</td><td>vLLM, AWQ INT4</td><td>candidate</td></tr>
 <tr><td>A7</td><td>Granite-4.1-30B</td><td>llama.cpp, Q4_K_XL</td><td>candidate</td></tr>
 <tr><td>A2</td><td>Qwen3.8-27B</td><td>llama.cpp, Q4_K_XL</td><td>candidate</td></tr>
 <tr><td>A9</td><td>Ministral-3-14B</td><td>vLLM, FP8</td><td>candidate</td></tr>
 </table></div>
-<p class="mute">One RTX 3090 per configuration; reasoning disabled.</p>
+<p class="mute">One RTX 3090 graphics card per model; the models' step-by-step "thinking" mode was off.</p>
 
-<h2>Tasks and acceptance criteria</h2>
+<h2>Tasks and pass marks</h2>
 <div class="wrap"><table>
-<tr><th>Task</th><th>Criterion (Wilson 95%)</th></tr>
-<tr><td>R1 negation rewrite: meaning preserved</td><td>≥ 90%, lower bound ≥ 0.85</td></tr>
-<tr><td>R2 entity extraction: recall</td><td>lower bound ≥ 0.85; hallucinated ≤ 2%; false on no-entity text ≤ 5%</td></tr>
-<tr><td>R3 verifier: rejects altered claims</td><td>lower bound ≥ 0.90; false rejection ≤ 10%</td></tr>
-<tr><td>R4 claim extraction: unfaithful claims</td><td>upper bound ≤ 0.10; failed spans upper bound ≤ 0.10</td></tr>
-<tr><td>R5 evidence judge: sign accuracy</td><td>lower bound ≥ 0.80; false support upper bound ≤ 0.10</td></tr>
+<tr><th>Task</th><th>What is measured</th><th>Pass mark</th></tr>
+<tr><td>R1 Negation rewrite</td><td>Rewrites a "not X" statement in positive form without changing its meaning</td><td>≥ 90% right, safe-side ≥ 85%</td></tr>
+<tr><td>R2 Entity extraction</td><td>Finds the things (parts, people, places…) a text names</td><td>safe-side ≥ 85% found; invents ≤ 2%; finds things in text that has none ≤ 5%</td></tr>
+<tr><td>R3 Verifier</td><td>Catches a claim that was subtly altered from its source</td><td>safe-side ≥ 90% caught; wrongly rejects correct claims ≤ 10%</td></tr>
+<tr><td>R4 Claim extraction</td><td>Claims pulled from a text that the text doesn't actually support (lower is better)</td><td>safe-side ≤ 10%; passages it fails to process ≤ 10%</td></tr>
+<tr><td>R5 Evidence judge</td><td>Decides whether a piece of evidence supports or contradicts an explanation</td><td>safe-side ≥ 80% right; calls contradicting evidence "supporting" ≤ 10%</td></tr>
 </table></div>
-<p class="mute">Selection: highest R5 lower bound among candidates meeting every criterion; otherwise highest R5 lower bound, with unmet criteria reported.</p>
+<p class="mute">Winner: among models passing every task, the best safe-side R5 score; if none passes everything, the best safe-side R5 score, with its failures listed.</p>
 
-<h2>Protocol</h2>
-<p class="mute">Test sets frozen before candidate evaluation (SHA-256 below); confirmation sets unread at registration. Amendments 11–15 followed the incumbent screen and preceded candidate evaluation. R5 reference labels: unanimous agreement of a three-model panel, filtered by independent adjudication against a pre-specified rubric. Source corpus private; aggregates only.</p>
-<details><summary>Frozen-set digests (SHA-256)</summary>
+<h2>How the test was kept fair</h2>
+<p class="mute">The test items were fixed and fingerprinted (codes below) before any candidate ran, and nobody looked at the confirmation items in advance. A few protocol changes (amendments 11–15) were made after the current model's first run, before any candidate ran. For R5, the correct answers are cases where three different models agreed, each then checked by an independent reviewer against written rules. The source documents are private, so only totals are published.</p>
+<details><summary>Fingerprints of the test sets (SHA-256)</summary>
 <div class="wrap"><table>
 <tr><th>Set</th><th>Items</th><th>SHA-256</th></tr>
 <tr><td>R1 screen</td><td>220</td><td><code>2762bafb01048ca51b983769ba9ab435e7e3831c9907902611265699ae5872be</code></td></tr>
 <tr><td>R1 confirmation</td><td>220</td><td><code>ecb50c8892b9835e211be7e8cda5e08d78a03ed70fad2dc20112c15a8fd12c50</code></td></tr>
-<tr><td>R1 judge controls</td><td>40</td><td><code>fb9b57b325c1c8993fa5f92f8c2329c7b9f5186d9d6e97dcc20f882bcf19e4b2</code></td></tr>
+<tr><td>R1 grader check items</td><td>40</td><td><code>fb9b57b325c1c8993fa5f92f8c2329c7b9f5186d9d6e97dcc20f882bcf19e4b2</code></td></tr>
 <tr><td>R2 screen</td><td>220</td><td><code>7cf84055dcbd45d0bbb68b7051648637dc6ab860d1bf8cefd2b40460ab1c981e</code></td></tr>
 <tr><td>R2 confirmation</td><td>220</td><td><code>6dc68c2d4f1deb595b4734c1898fb8218e0ac923f29349b5b43e05832051daa1</code></td></tr>
 <tr><td>R3 screen</td><td>200</td><td><code>65ea5bcb74222b4c941e77a19236ee47d996b5fee7a42595e3fef15a78e046f8</code></td></tr>
 <tr><td>R3 confirmation</td><td>200</td><td><code>a9dd89422fa78e6cef20d7f50c4b6b9f2eb8eae48ef2e793a083b98e832969ad</code></td></tr>
 <tr><td>R4 screen</td><td>108</td><td><code>f54fd9c6aff306bcef5b6c6575ab9fca642ea78df8b12a2356b24d3bbcf0cbdf</code></td></tr>
 <tr><td>R4 confirmation</td><td>108</td><td><code>cc97053b65d5415c1bbf6d34b8b9e29c39be1c212e15b34d0f079edd5101f3af</code></td></tr>
-<tr><td>R4 judge controls</td><td>40</td><td><code>b119a74227489f969b093dbb787a532b4d85dfbf0600fe27e07f9334873501e5</code></td></tr>
+<tr><td>R4 grader check items</td><td>40</td><td><code>b119a74227489f969b093dbb787a532b4d85dfbf0600fe27e07f9334873501e5</code></td></tr>
 <tr><td>R5 screen</td><td>60</td><td><code>cfbaf7d81b41cb877e4e55c270fd5b4944124cf9f7c232d17a929a208e25d94b</code></td></tr>
 <tr><td>R5 confirmation</td><td>66</td><td><code>1db2bc7a91d91fd1dd85bf9f09bbaa5aa828cb097d6c5c382e05c5415b262bbf</code></td></tr>
 </table></div>
 </details>
 
 <h2>Results at a glance</h2>
-<p class="mute">Each row: point estimate (dot) and the Wilson 95% bound the criterion tests (end of the line). Dashed line: the criterion's bound threshold. ✓ meets / ✗ misses the task's full criterion — a ✗ with its bound past the line missed a secondary criterion (see the criteria table). Square marker: screen set; circle: confirmation set.</p>
+<p class="mute">Each row is one model. The marker is its score; the line runs to its safe-side figure; the dashed line is the pass mark. A ✗ whose line still clears the pass mark failed one of the task's other limits (see "Tasks and pass marks"). Square marker: result from the screen set only.</p>
 <div class="legend" aria-hidden="true">
-<span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--good)"/></svg>meets criterion</span>
-<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.2" fill="var(--bg)" stroke="var(--bad)" stroke-width="1.8"/></svg>misses</span>
-<span><svg width="12" height="12"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5" fill="var(--mute)"/></svg>screen set</span>
-<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="currentColor" stroke-dasharray="3 3"/></svg>threshold</span>
+<span><svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="var(--good)"/></svg>passes</span>
+<span><svg width="12" height="12"><circle cx="6" cy="6" r="4.2" fill="var(--bg)" stroke="var(--bad)" stroke-width="1.8"/></svg>fails</span>
+<span><svg width="12" height="12"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5" fill="var(--mute)"/></svg>screen set only</span>
+<span><svg width="22" height="12"><line x1="1" y1="6" x2="21" y2="6" stroke="currentColor" stroke-dasharray="3 3"/></svg>pass mark</span>
 </div>
 <div class="charts" id="charts"></div>
 <div id="tip" role="tooltip"></div>
 
-<h2>Results</h2>
-<p class="mute">Point estimate with the Wilson 95% bound the criterion uses (lower bound ↑, upper bound ↓). ✓ meets, ✗ misses. <sup>s</sup> screen set (arm stopped at screen); otherwise confirmation set.</p>
+<h2>Results table</h2>
+<p class="mute">Score, then the safe-side figure in brackets (↑ must be at least the pass mark, ↓ at most). ✓ passes, ✗ fails. <sup>s</sup> screen set only (the model was stopped there); otherwise the confirmation set.</p>
 <div class="wrap"><table>
-<tr><th>Model · stack</th><th>R1 meaning preserved</th><th>R2 recall</th><th>R3 altered rejected</th><th>R4 unfaithful</th><th>R5 sign accuracy</th></tr>
-<tr><td>Qwen3.5-4B<br><span class="mute">vLLM · AWQ 4-bit</span></td><td>90.0% (0.833↑)<sup>s</sup> ✗</td><td>90.9% (0.873↑)<sup>s</sup> ✗</td><td>89% (0.814↑) ✗</td><td>9.8% (0.116↓)<sup>s</sup> ✗</td><td>91.7% (0.819↑)<sup>s</sup> ✗</td></tr>
-<tr><td>Qwen3.5-4B<br><span class="mute">vLLM · bf16</span></td><td>92.9% (0.866↑)<sup>s</sup> ✓</td><td>90.9% (0.873↑)<sup>s</sup> ✓</td><td>—</td><td>6.2% (0.077↓)<sup>s</sup> ✓</td><td>93.3% (0.841↑)<sup>s</sup> ✓</td></tr>
-<tr><td>Gemma-4-26B-A4B<br><span class="mute">vLLM · AWQ INT4</span></td><td>77.2% (0.676↑)<sup>s</sup> ✗</td><td>88.4% (0.845↑)<sup>s</sup> ✗</td><td>96% (0.902↑) ✓</td><td>4.4% (0.058↓)<sup>s</sup> ✓</td><td>96.7% (0.886↑)<sup>s</sup> ✓</td></tr>
-<tr><td>Granite-4.1-30B<br><span class="mute">llama.cpp · Q4_K_XL</span></td><td>86.8% (0.803↑) ✗</td><td>94.7% (0.917↑) ✓</td><td>91% (0.838↑) ✗</td><td>8.5% (0.105↓) ✗</td><td>93.9% (0.854↑) ✗</td></tr>
-<tr><td><b>Qwen3.8-27B</b><br><span class="mute">llama.cpp · Q4_K_XL</span></td><td>92.9% (0.874↑) ✓</td><td>95.3% (0.924↑) ✓</td><td>95% (0.888↑) ✗</td><td>4.1% (0.052↓) ✓</td><td>97.0% (0.896↑) ✓</td></tr>
-<tr><td>Ministral-3-14B<br><span class="mute">vLLM · FP8</span></td><td>86.3% (0.791↑) ✗</td><td>93.1% (0.898↑) ✗</td><td>93% (0.863↑) ✗</td><td>15.5% (0.172↓) ✗</td><td>90.9% (0.816↑) ✗</td></tr>
+<tr><th>Model · runs on</th><th>R1 meaning kept</th><th>R2 things found</th><th>R3 altered claims caught</th><th>R4 unsupported claims ↓</th><th>R5 evidence judged right</th></tr>
+<tr><td>Qwen3.5-4B<br><span class="mute">vLLM · AWQ 4-bit</span></td><td>90.0% (83.3%↑)<sup>s</sup> ✗</td><td>90.9% (87.3%↑)<sup>s</sup> ✗</td><td>89% (81.4%↑) ✗</td><td>9.8% (11.6%↓)<sup>s</sup> ✗</td><td>91.7% (81.9%↑)<sup>s</sup> ✗</td></tr>
+<tr><td>Qwen3.5-4B<br><span class="mute">vLLM · bf16</span></td><td>92.9% (86.6%↑)<sup>s</sup> ✓</td><td>90.9% (87.3%↑)<sup>s</sup> ✓</td><td>—</td><td>6.2% (7.7%↓)<sup>s</sup> ✓</td><td>93.3% (84.1%↑)<sup>s</sup> ✓</td></tr>
+<tr><td>Gemma-4-26B-A4B<br><span class="mute">vLLM · AWQ INT4</span></td><td>77.2% (67.6%↑)<sup>s</sup> ✗</td><td>88.4% (84.5%↑)<sup>s</sup> ✗</td><td>96% (90.2%↑) ✓</td><td>4.4% (5.8%↓)<sup>s</sup> ✓</td><td>96.7% (88.6%↑)<sup>s</sup> ✓</td></tr>
+<tr><td>Granite-4.1-30B<br><span class="mute">llama.cpp · Q4_K_XL</span></td><td>86.8% (80.3%↑) ✗</td><td>94.7% (91.7%↑) ✓</td><td>91% (83.8%↑) ✗</td><td>8.5% (10.5%↓) ✗</td><td>93.9% (85.4%↑) ✗</td></tr>
+<tr><td><b>Qwen3.8-27B</b><br><span class="mute">llama.cpp · Q4_K_XL</span></td><td>92.9% (87.4%↑) ✓</td><td>95.3% (92.4%↑) ✓</td><td>95% (88.8%↑) ✗</td><td>4.1% (5.2%↓) ✓</td><td>97.0% (89.6%↑) ✓</td></tr>
+<tr><td>Ministral-3-14B<br><span class="mute">vLLM · FP8</span></td><td>86.3% (79.1%↑) ✗</td><td>93.1% (89.8%↑) ✗</td><td>93% (86.3%↑) ✗</td><td>15.5% (17.2%↓) ✗</td><td>90.9% (81.6%↑) ✗</td></tr>
 </table></div>
-<p><b>Selected:</b> Qwen3.8-27B (llama.cpp, Q4_K_XL) for R1, R2, R4, R5 — the only candidate meeting every producer criterion; Gemma-4-26B-A4B (vLLM, AWQ INT4) as verifier (R3) — the only cross-family pass.</p>
+<p><b>Selected:</b> Qwen3.8-27B (llama.cpp, Q4_K_XL) for R1, R2, R4 and R5 — the only model that passed all four. Gemma-4-26B-A4B (vLLM, AWQ INT4) as the verifier (R3) — the only pass from a different model family, so the checker does not share the main model's blind spots.</p>
 
-<h2>Evidence-judge method on the selected model</h2>
-<span class="status">Pre-registered 2026-10-12 · results 2026-10-13</span>
-<p class="mute">Five ways to run the R5 evidence judge on Qwen3.8-27B (llama.cpp, Q4_K_XL, two RTX 3090 replicas). Accuracy on the frozen R5 sets above; speed and stability on all 3,248 candidate pairs of a 10-document test corpus, each method run twice.</p>
+<h2>Evidence judge: five ways to ask the same model</h2>
+<span class="status">Plan published 2026-10-12 · results 2026-10-13</span>
+<p class="mute">The R5 evidence judge, run five different ways on the selected model (Qwen3.8-27B). Accuracy is measured on the R5 test items above. Speed and consistency are measured on 3,248 real evidence–explanation pairs from a 10-document test set, with each method run twice.</p>
 <div class="wrap"><table>
-<tr><th>Method</th><th>Calls / pair</th><th>R5 screen</th><th>R5 confirmation</th><th>Rival credit</th></tr>
-<tr><td>A · 5-sample panel, T 1.0 (current)</td><td>5</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
-<tr><td><b>B · one call, verdict from sign-token probabilities</b></td><td>1</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
-<tr><td>C-A · panel, prefix-ordered prompts</td><td>5</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
-<tr><td>C-B · probabilities, prefix-ordered prompts</td><td>1</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
-<tr><td>D · one call, verdict-only output</td><td>1</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
+<tr><th>Method</th><th>Questions per pair</th><th>R5 screen set</th><th>R5 confirmation set</th><th>Evidence credited to the wrong explanation</th></tr>
+<tr><td>A · ask 5 times, take the majority (current)</td><td>5</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
+<tr><td><b>B · ask once, read how confident the model is</b></td><td>1</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
+<tr><td>C-A · as A, with the question reordered so repeated parts are reused</td><td>5</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
+<tr><td>C-B · as B, with the same reordering</td><td>1</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
+<tr><td>D · ask once, answer only, no explanation</td><td>1</td><td>58/60 (88.6%↑)</td><td>63/66 (87.5%↑)</td><td>0/40</td></tr>
 </table></div>
-<p class="mute">Sign accuracy with its Wilson 95% lower bound; every method gets exactly the same items right (paired McNemar against A: p = 1.0, Holm-corrected). Rival credit: evidence wrongly credited to a rival hypothesis.</p>
+<p class="mute">Items judged right, with the safe-side figure in brackets. All five methods got exactly the same items right, so their accuracy is identical. The last column counts evidence that was counted for a competing explanation it doesn't belong to.</p>
 <div class="charts" id="judge"></div>
-<p><b>Result:</b> equal accuracy; one probability-scored call (B) is ~4× faster than the 5-sample panel and ~12× more stable run to run. Approved as the production judge.</p>
+<p><b>Result:</b> same accuracy; asking once and reading the model's confidence (B) is about 4× faster than asking five times, and gives the same answer twice in a row far more often (6 changed answers instead of 71). Approved as the production judge.</p>
 </main>
 <script>
 (function(){
 var M=[["Qwen3.5-4B AWQ","Qwen3.5-4B · vLLM · AWQ 4-bit"],["Qwen3.5-4B bf16","Qwen3.5-4B · vLLM · bf16"],["Gemma-4-26B","Gemma-4-26B-A4B · vLLM · AWQ INT4"],["Granite-4.1-30B","Granite-4.1-30B · llama.cpp · Q4_K_XL"],["Qwen3.8-27B","Qwen3.8-27B · llama.cpp · Q4_K_XL",1],["Ministral-3-14B","Ministral-3-14B · vLLM · FP8"]];
 // [point, criterion bound, meets, screen-set]; null = not run
 var T=[
- {t:"R1 negation rewrite",m:"meaning preserved",c:"lower bound ≥ 0.85",thr:.85,lo:.6,hi:1,up:1,d:[[.900,.833,0,1],[.929,.866,1,1],[.772,.676,0,1],[.868,.803,0,0],[.929,.874,1,0],[.863,.791,0,0]]},
- {t:"R2 entity extraction",m:"recall",c:"lower bound ≥ 0.85 (+ hallucination limits)",thr:.85,lo:.8,hi:1,up:1,d:[[.909,.873,0,1],[.909,.873,1,1],[.884,.845,0,1],[.947,.917,1,0],[.953,.924,1,0],[.931,.898,0,0]]},
- {t:"R3 verifier",m:"altered claims rejected",c:"lower bound ≥ 0.90 (+ false rejection ≤ 10%)",thr:.90,lo:.8,hi:1,up:1,d:[[.89,.814,0,0],null,[.96,.902,1,0],[.91,.838,0,0],[.95,.888,0,0],[.93,.863,0,0]]},
- {t:"R4 claim extraction",m:"unfaithful claims, lower is better",c:"upper bound ≤ 0.10",thr:.10,lo:0,hi:.2,up:0,d:[[.098,.116,0,1],[.062,.077,1,1],[.044,.058,1,1],[.085,.105,0,0],[.041,.052,1,0],[.155,.172,0,0]]},
- {t:"R5 evidence judge",m:"sign accuracy",c:"lower bound ≥ 0.80 (+ false support ≤ 10%)",thr:.80,lo:.8,hi:1,up:1,d:[[.917,.819,0,1],[.933,.841,1,1],[.967,.886,1,1],[.939,.854,0,0],[.970,.896,1,0],[.909,.816,0,0]]}
+ {t:"R1 Negation rewrite",m:"meaning kept",c:"pass: safe-side ≥ 85%",thr:.85,lo:.6,hi:1,up:1,d:[[.900,.833,0,1],[.929,.866,1,1],[.772,.676,0,1],[.868,.803,0,0],[.929,.874,1,0],[.863,.791,0,0]]},
+ {t:"R2 Entity extraction",m:"things found",c:"pass: safe-side ≥ 85%, few invented",thr:.85,lo:.8,hi:1,up:1,d:[[.909,.873,0,1],[.909,.873,1,1],[.884,.845,0,1],[.947,.917,1,0],[.953,.924,1,0],[.931,.898,0,0]]},
+ {t:"R3 Verifier",m:"altered claims caught",c:"pass: safe-side ≥ 90%, few false alarms",thr:.90,lo:.8,hi:1,up:1,d:[[.89,.814,0,0],null,[.96,.902,1,0],[.91,.838,0,0],[.95,.888,0,0],[.93,.863,0,0]]},
+ {t:"R4 Claim extraction",m:"unsupported claims, lower is better",c:"pass: safe-side ≤ 10%",thr:.10,lo:0,hi:.2,up:0,d:[[.098,.116,0,1],[.062,.077,1,1],[.044,.058,1,1],[.085,.105,0,0],[.041,.052,1,0],[.155,.172,0,0]]},
+ {t:"R5 Evidence judge",m:"evidence judged right",c:"pass: safe-side ≥ 80%",thr:.80,lo:.8,hi:1,up:1,d:[[.917,.819,0,1],[.933,.841,1,1],[.967,.886,1,1],[.939,.854,0,0],[.970,.896,1,0],[.909,.816,0,0]]}
 ];
 var NS="http://www.w3.org/2000/svg",W=300,L=104,R=22,RH=24,TOP=6,AX=20;
 function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
@@ -167,7 +179,7 @@ T.forEach(function(t){
    var a=d[2]?{fill:col}:{fill:"var(--bg)",stroke:col,"stroke-width":2};
    if(d[3]){a.x=px-5;a.y=y-5;a.width=10;a.height=10;a.rx=2;el("rect",a,g)}else{a.cx=px;a.cy=y;a.r=d[2]?5.5:4.6;el("circle",a,g)}
    var mk=el("text",{x:W-R+8,y:y+4,"text-anchor":"start"},g);mk.textContent=d[2]?"✓":"✗";mk.setAttribute("style","fill:"+col);
-   html="<b>"+m[1]+"</b><br>"+t.m+": <b>"+pct(d[0])+"</b><br>Wilson 95% "+(t.up?"lower":"upper")+" bound: "+d[1].toFixed(3)+"<br>"+(d[2]?"✓ meets":"✗ misses")+" criterion · "+(d[3]?"screen set":"confirmation set");
+   html="<b>"+m[1]+"</b><br>"+t.m+": <b>"+pct(d[0])+"</b><br>Safe-side figure: "+pct(d[1])+"<br>"+(d[2]?"✓ passes":"✗ fails")+" · "+(d[3]?"screen set only":"confirmation set");
   }
   g.addEventListener("mousemove",function(e){tip.innerHTML=html;tip.style.display="block";var tw=tip.offsetWidth,lx=e.clientX+14;if(lx+tw>innerWidth-8)lx=e.clientX-tw-14;tip.style.left=lx+"px";tip.style.top=(e.clientY+14)+"px"});
   g.addEventListener("mouseleave",function(){tip.style.display="none"});
@@ -175,12 +187,12 @@ T.forEach(function(t){
  host.appendChild(div);
 });
 // Evidence-judge method: one horizontal bar per method, mean of the two all-pairs runs
-var JM=[["A · panel","5-sample panel, T 1.0 (current)"],["B · probabilities","one call, verdict from sign-token probabilities",1],["C-A · panel, prefix","panel, prefix-ordered prompts"],["C-B · prob., prefix","probabilities, prefix-ordered prompts"],["D · verdict-only","one call, verdict-only output"]];
+var JM=[["A · ask 5×","A · ask 5 times, take the majority (current)"],["B · ask once","B · ask once, read how confident the model is",1],["C-A · 5×, reordered","C-A · as A, question reordered"],["C-B · once, reordered","C-B · as B, question reordered"],["D · answer only","D · ask once, answer only, no explanation"]];
 var JP=[
- {t:"Wall time",c:"3,248 pairs, hours (lower is better)",hi:2,f:function(v){return v.toFixed(2)+" h"},d:[6269.5,1520.3,6349.2,1406.0,1023.5].map(function(s){return s/3600}),n:function(i){return "runs: "+[["6,130 s","6,409 s"],["1,539 s","1,502 s"],["6,290 s","6,408 s"],["1,444 s","1,368 s"],["1,050 s","997 s"]][i].join(" · ")}},
- {t:"Run-to-run disagreements",c:"pairs whose sign differs between two runs (lower is better)",hi:80,f:function(v){return String(v)},d:[71,6,69,6,17],n:function(i,v){return (v/3248*100).toFixed(2)+"% of 3,248 pairs"}},
- {t:"p95 latency per pair",c:"seconds (lower is better)",hi:10,f:function(v){return v.toFixed(1)+" s"},d:[8.62,2.24,8.63,2.12,1.45],n:function(){return "mean of two runs"}},
- {t:"Tokens per pair",c:"prompt + output (lower is better)",hi:3500,f:function(v){return v.toLocaleString("en")},d:[3105,621,3105,621,609],n:function(i){return ["3,005 + 100","601 + 20","3,005 + 100","601 + 20","601 + 8"][i]}}
+ {t:"Total time",c:"to judge all 3,248 pairs, hours (lower is better)",hi:2,f:function(v){return v.toFixed(2)+" h"},d:[6269.5,1520.3,6349.2,1406.0,1023.5].map(function(s){return s/3600}),n:function(i){return "runs: "+[["6,130 s","6,409 s"],["1,539 s","1,502 s"],["6,290 s","6,408 s"],["1,444 s","1,368 s"],["1,050 s","997 s"]][i].join(" · ")}},
+ {t:"Changed answers on a re-run",c:"pairs judged differently when the same method ran twice (lower is better)",hi:80,f:function(v){return String(v)},d:[71,6,69,6,17],n:function(i,v){return (v/3248*100).toFixed(2)+"% of 3,248 pairs"}},
+ {t:"Slow-case time per pair",c:"95% of pairs finish within, seconds (lower is better)",hi:10,f:function(v){return v.toFixed(1)+" s"},d:[8.62,2.24,8.63,2.12,1.45],n:function(){return "average of two runs"}},
+ {t:"Text processed per pair",c:"tokens (word pieces) in + out (lower is better)",hi:3500,f:function(v){return v.toLocaleString("en")},d:[3105,621,3105,621,609],n:function(i){return ["3,005 + 100","601 + 20","3,005 + 100","601 + 20","601 + 8"][i]}}
 ];
 var jh=document.getElementById("judge"),JL=118,JR=46,BH=12;
 JP.forEach(function(p){
