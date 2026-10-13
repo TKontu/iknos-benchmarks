@@ -30,7 +30,7 @@ summary{cursor:pointer;color:var(--accent)}
 <main>
 <h1>Local LLMs on the Iknos evidence-reasoning tasks</h1>
 <p class="mute"><b>Abstract.</b> Six locally served LLM configurations are evaluated on five tasks of the Iknos pipeline (claim extraction, negation canonicalisation, entity extraction, claim–span verification, evidence–hypothesis sign judgement) and on ingest throughput. Each task uses its production prompt and output schema. Test sets, acceptance criteria and the selection rule were fixed before candidate evaluation; results are reported as Wilson 95% intervals.</p>
-<span class="status">Pre-registered 2026-10-10 · results pending</span>
+<span class="status">Pre-registered 2026-10-10 · results 2026-10-13</span>
 
 <h2>Configurations</h2>
 <div class="wrap"><table>
@@ -76,7 +76,17 @@ summary{cursor:pointer;color:var(--accent)}
 </details>
 
 <h2>Results</h2>
-<p class="mute">Pending; all configurations will be reported, including those failing criteria.</p>
+<p class="mute">Point estimate with the Wilson 95% bound the criterion uses (lower bound ↑, upper bound ↓). ✓ meets, ✗ misses. <sup>s</sup> screen set (arm stopped at screen); otherwise confirmation set.</p>
+<div class="wrap"><table>
+<tr><th>Arm</th><th>R1 meaning preserved</th><th>R2 recall</th><th>R3 altered rejected</th><th>R4 unfaithful</th><th>R5 sign accuracy</th></tr>
+<tr><td>B0</td><td>90.0% (0.833↑)<sup>s</sup> ✗</td><td>90.9% (0.873↑)<sup>s</sup> ✗</td><td>89% (0.814↑) ✗</td><td>9.8% (0.116↓)<sup>s</sup> ✗</td><td>91.7% (0.819↑)<sup>s</sup> ✗</td></tr>
+<tr><td>B0-bf16</td><td>92.9% (0.866↑)<sup>s</sup> ✓</td><td>90.9% (0.873↑)<sup>s</sup> ✓</td><td>—</td><td>6.2% (0.077↓)<sup>s</sup> ✓</td><td>93.3% (0.841↑)<sup>s</sup> ✓</td></tr>
+<tr><td>A3</td><td>77.2% (0.676↑)<sup>s</sup> ✗</td><td>88.4% (0.845↑)<sup>s</sup> ✗</td><td>96% (0.902↑) ✓</td><td>4.4% (0.058↓)<sup>s</sup> ✓</td><td>96.7% (0.886↑)<sup>s</sup> ✓</td></tr>
+<tr><td>A7</td><td>86.8% (0.803↑) ✗</td><td>94.7% (0.917↑) ✓</td><td>91% (0.838↑) ✗</td><td>8.5% (0.105↓) ✗</td><td>93.9% (0.854↑) ✗</td></tr>
+<tr><td><b>A2</b></td><td>92.9% (0.874↑) ✓</td><td>95.3% (0.924↑) ✓</td><td>95% (0.888↑) ✗</td><td>4.1% (0.052↓) ✓</td><td>97.0% (0.896↑) ✓</td></tr>
+<tr><td>A9</td><td>86.3% (0.791↑) ✗</td><td>93.1% (0.898↑) ✗</td><td>93% (0.863↑) ✗</td><td>15.5% (0.172↓) ✗</td><td>90.9% (0.816↑) ✗</td></tr>
+</table></div>
+<p><b>Selected:</b> A2 (Qwen3.8-27B) for R1, R2, R4, R5 — the only candidate meeting every producer criterion; A3 (Gemma-4-26B) as verifier (R3) — the only cross-family pass.</p>
 </main>
 </body>
 </html>
