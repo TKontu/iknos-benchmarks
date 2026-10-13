@@ -115,6 +115,21 @@ summary{cursor:pointer;color:var(--accent)}
 <tr><td>Ministral-3-14B<br><span class="mute">vLLM · FP8</span></td><td>86.3% (0.791↑) ✗</td><td>93.1% (0.898↑) ✗</td><td>93% (0.863↑) ✗</td><td>15.5% (0.172↓) ✗</td><td>90.9% (0.816↑) ✗</td></tr>
 </table></div>
 <p><b>Selected:</b> Qwen3.8-27B (llama.cpp, Q4_K_XL) for R1, R2, R4, R5 — the only candidate meeting every producer criterion; Gemma-4-26B-A4B (vLLM, AWQ INT4) as verifier (R3) — the only cross-family pass.</p>
+
+<h2>Evidence-judge method on the selected model</h2>
+<span class="status">Pre-registered 2026-10-12 · results 2026-10-13</span>
+<p class="mute">Five ways to run the R5 evidence judge on Qwen3.8-27B (llama.cpp, Q4_K_XL, two RTX 3090 replicas). Accuracy on the frozen R5 sets above; speed and stability on all 3,248 candidate pairs of a 10-document test corpus, each method run twice.</p>
+<div class="wrap"><table>
+<tr><th>Method</th><th>Calls / pair</th><th>R5 screen</th><th>R5 confirmation</th><th>Rival credit</th></tr>
+<tr><td>A · 5-sample panel, T 1.0 (current)</td><td>5</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
+<tr><td><b>B · one call, verdict from sign-token probabilities</b></td><td>1</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
+<tr><td>C-A · panel, prefix-ordered prompts</td><td>5</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
+<tr><td>C-B · probabilities, prefix-ordered prompts</td><td>1</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
+<tr><td>D · one call, verdict-only output</td><td>1</td><td>58/60 (0.886↑)</td><td>63/66 (0.875↑)</td><td>0/40</td></tr>
+</table></div>
+<p class="mute">Sign accuracy with its Wilson 95% lower bound; every method gets exactly the same items right (paired McNemar against A: p = 1.0, Holm-corrected). Rival credit: evidence wrongly credited to a rival hypothesis.</p>
+<div class="charts" id="judge"></div>
+<p><b>Result:</b> equal accuracy; one probability-scored call (B) is ~4× faster than the 5-sample panel and ~12× more stable run to run. Approved as the production judge.</p>
 </main>
 <script>
 (function(){
@@ -158,6 +173,34 @@ T.forEach(function(t){
   g.addEventListener("mouseleave",function(){tip.style.display="none"});
  });
  host.appendChild(div);
+});
+// Evidence-judge method: one horizontal bar per method, mean of the two all-pairs runs
+var JM=[["A · panel","5-sample panel, T 1.0 (current)"],["B · probabilities","one call, verdict from sign-token probabilities",1],["C-A · panel, prefix","panel, prefix-ordered prompts"],["C-B · prob., prefix","probabilities, prefix-ordered prompts"],["D · verdict-only","one call, verdict-only output"]];
+var JP=[
+ {t:"Wall time",c:"3,248 pairs, hours (lower is better)",hi:2,f:function(v){return v.toFixed(2)+" h"},d:[6269.5,1520.3,6349.2,1406.0,1023.5].map(function(s){return s/3600}),n:function(i){return "runs: "+[["6,130 s","6,409 s"],["1,539 s","1,502 s"],["6,290 s","6,408 s"],["1,444 s","1,368 s"],["1,050 s","997 s"]][i].join(" · ")}},
+ {t:"Run-to-run disagreements",c:"pairs whose sign differs between two runs (lower is better)",hi:80,f:function(v){return String(v)},d:[71,6,69,6,17],n:function(i,v){return (v/3248*100).toFixed(2)+"% of 3,248 pairs"}},
+ {t:"p95 latency per pair",c:"seconds (lower is better)",hi:10,f:function(v){return v.toFixed(1)+" s"},d:[8.62,2.24,8.63,2.12,1.45],n:function(){return "mean of two runs"}},
+ {t:"Tokens per pair",c:"prompt + output (lower is better)",hi:3500,f:function(v){return v.toLocaleString("en")},d:[3105,621,3105,621,609],n:function(i){return ["3,005 + 100","601 + 20","3,005 + 100","601 + 20","601 + 8"][i]}}
+];
+var jh=document.getElementById("judge"),JL=118,JR=46,BH=12;
+JP.forEach(function(p){
+ var div=document.createElement("div");div.className="panel";
+ div.innerHTML="<h3>"+p.t+"</h3><p class='crit'>"+p.c+"</p>";
+ var H=TOP+JM.length*RH+4,svg=el("svg",{viewBox:"0 0 "+W+" "+H,role:"img","aria-label":p.t},div);
+ var x=function(v){return JL+v/p.hi*(W-JL-JR)};
+ el("line",{x1:JL,x2:JL,y1:TOP,y2:TOP+JM.length*RH,"class":"grid"},svg);
+ JM.forEach(function(m,r){
+  var y=TOP+r*RH+RH/2,g=el("g",{"class":"row"},svg),v=p.d[r];
+  el("rect",{x:0,y:y-RH/2,width:W,height:RH,fill:"transparent","class":"hit"},g);
+  var lb=el("text",{x:JL-8,y:y+4,"text-anchor":"end","class":"lbl"+(m[2]?" sel":"")},g);lb.textContent=m[0];
+  var w=Math.max(2,x(v)-JL);
+  el("path",{d:"M"+JL+","+(y-BH/2)+"h"+(w-4)+"a4,4 0 0 1 4,4v"+(BH-8)+"a4,4 0 0 1 -4,4h"+(-(w-4))+"z",fill:m[2]?"var(--accent)":"var(--mute)",opacity:m[2]?1:.55},g);
+  var vt=el("text",{x:JL+w+6,y:y+4},g);vt.textContent=p.f(v);
+  var html="<b>"+m[1]+"</b><br>"+p.t+": <b>"+p.f(v)+"</b><br>"+p.n(r,v);
+  g.addEventListener("mousemove",function(e){tip.innerHTML=html;tip.style.display="block";var tw=tip.offsetWidth,lx=e.clientX+14;if(lx+tw>innerWidth-8)lx=e.clientX-tw-14;tip.style.left=lx+"px";tip.style.top=(e.clientY+14)+"px"});
+  g.addEventListener("mouseleave",function(){tip.style.display="none"});
+ });
+ jh.appendChild(div);
 });
 })();
 </script>
